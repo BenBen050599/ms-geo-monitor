@@ -27,13 +27,14 @@ class GroqAPIScraper(BaseScraper):
         
         Args:
             api_key: Groq API key (or set GROQ_API_KEY env var)
-            model: Model to use (default: llama-3.3-70b-versatile)
+            model: Model to use (default: llama-3.1-8b-instant for token efficiency)
         """
         self.api_key = api_key or os.getenv("GROQ_API_KEY")
         if not self.api_key:
             raise ScraperError("GROQ_API_KEY not set. Get free key at https://console.groq.com")
         
-        self.model = model or self.MODELS[0]
+        # Use 8b-instant by default: ~4x fewer tokens than 70b, same free tier limit
+        self.model = model or "llama-3.1-8b-instant"
     
     def search(self, query: str) -> str:
         """
@@ -67,7 +68,7 @@ Provide a detailed answer, and if you mention any websites or services, include 
                     {"role": "user", "content": prompt}
                 ],
                 temperature=0.7,
-                max_tokens=2000,
+                max_tokens=800,  # Reduced for token efficiency
             )
             
             return response.choices[0].message.content
