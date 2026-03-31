@@ -1,0 +1,11 @@
+{
+  "result": null,
+  "success": false,
+  "errors": [
+    {
+      "code": 1015,
+      "message": "Zone Analytics API is sunset and replaced by GraphQL API"
+    }
+  ],
+  "messages": []
+}

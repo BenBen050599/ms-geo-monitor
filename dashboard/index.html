@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GEO Monitor - Marine Sphere</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #0f172a;
+            color: #e2e8f0;
+            padding: 20px;
+        }
+        .container { max-width: 1200px; margin: 0 auto; }
+        h1 { color: #fff; margin-bottom: 8px; }
+        .subtitle { color: #94a3b8; margin-bottom: 30px; font-size: 14px; }
+        
+        /* Cards */
+        .cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 16px;
+            margin-bottom: 30px;
+        }
+        .card {
+            background: #1e293b;
+            border-radius: 12px;
+            padding: 20px;
+            border: 1px solid #334155;
+        }
+        .card-value { font-size: 32px; font-weight: bold; color: #3b82f6; }
+        .card-label { color: #94a3b8; font-size: 13px; margin-top: 4px; }
+        .card.highlight { border-color: #3b82f6; }
+        .card.positive .card-value { color: #22c55e; }
+        .card.warning .card-value { color: #f59e0b; }
+        .card.danger .card-value { color: #ef4444; }
+        
+        /* Charts */
+        .chart-container {
+            background: #1e293b;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 30px;
+            border: 1px solid #334155;
+        }
+        .chart-title {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            color: #fff;
+        }
+        
+        /* Tables */
+        .results-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: #1e293b;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid #334155;
+        }
+        .results-table th {
+            background: #334155;
+            padding: 12px 16px;
+            text-align: left;
+            font-size: 12px;
+            text-transform: uppercase;
+            color: #94a3b8;
+        }
+        .results-table td {
+            padding: 12px 16px;
+            border-top: 1px solid #334155;
+            font-size: 14px;
+        }
+        .results-table tr:hover { background: #334155; }
+        
+        /* Badges */
+        .badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+        .badge.mentioned { background: #22c55e20; color: #22c55e; }
+        .badge.not-mentioned { background: #ef444420; color: #ef4444; }
+        .badge.top { background: #3b82f620; color: #60a5fa; }
+        .badge.middle { background: #f59e0b20; color: #fbbf24; }
+        .badge.bottom { background: #ef444420; color: #f87171; }
+        
+        /* Recommendations */
+        .recommendations {
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 30px;
+            border: 1px solid #3b82f6;
+        }
+        .recommendations h3 { 
+            color: #fff; 
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .recommendation-item {
+            background: #0f172a;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 12px;
+            border-left: 4px solid;
+        }
+        .recommendation-item.high { border-color: #ef4444; }
+        .recommendation-item.medium { border-color: #f59e0b; }
+        .recommendation-item.low { border-color: #22c55e; }
+        .recommendation-item h4 { 
+            color: #fff; 
+            font-size: 14px; 
+            margin-bottom: 8px;
+        }
+        .recommendation-item p { 
+            color: #94a3b8; 
+            font-size: 13px; 
+            line-height: 1.5;
+        }
+        .priority-tag {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 10px;
+            font-weight: bold;
+            margin-left: 8px;
+        }
+        .priority-tag.high { background: #ef4444; color: white; }
+        .priority-tag.medium { background: #f59e0b; color: white; }
+        .priority-tag.low { background: #22c55e; color: white; }
+        
+        /* Loading/Error */
+        .loading, .error, .no-data {
+            text-align: center;
+            padding: 60px;
+            color: #94a3b8;
+        }
+        .error { background: #7f1d1d; border-radius: 12px; color: #fca5a5; }
+        
+        /* Expand button */
+        .expand-btn {
+            background: #334155;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 6px;
+            color: #e2e8f0;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        .expand-btn:hover { background: #475569; }
+        
+        /* Raw response */
+        .raw-response {
+            display: none;
+            background: #0f172a;
+            padding: 16px;
+            border-radius: 8px;
+            font-size: 13px;
+            white-space: pre-wrap;
+            max-height: 300px;
+            overflow-y: auto;
+            margin-top: 8px;
+            color: #cbd5e1;
+            font-family: monospace;
+        }
+        .raw-response.show { display: block; }
+        
+        /* Filter buttons */
+        .filters {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+        }
+        .filter-btn {
+            background: #334155;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            color: #e2e8f0;
+            cursor: pointer;
+            font-size: 13px;
+        }
+        .filter-btn.active { background: #3b82f6; }
+        .filter-btn:hover { background: #475569; }
+        
+        .footer {
+            text-align: center;
+            padding: 30px;
+            color: #64748b;
+            font-size: 12px;
+        }
+        .footer a { color: #3b82f6; text-decoration: none; }
+        
+        /* Insight boxes */
+        .insight-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 16px;
+            margin-bottom: 30px;
+        }
+        .insight-box {
+            background: #1e293b;
+            border-radius: 12px;
+            padding: 20px;
+            border: 1px solid #334155;
+        }
+        .insight-box h4 {
+            color: #fff;
+            font-size: 14px;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .insight-box ul {
+            color: #94a3b8;
+            font-size: 13px;
+            padding-left: 20px;
+        }
+        .insight-box li { margin-bottom: 6px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📊 GEO Monitor</h1>
+        <p class="subtitle">Tracking Marine Sphere in AI Search Results</p>
+        
+        <div id="app">
+            <div class="loading">Loading real data...</div>
+        </div>
+        
+        <div class="footer">
+            Powered by <a href="https://github.com/BenBen050599/ms-geo-monitor" target="_blank">GEO Monitor</a>
+            | <a href="https://github.com/BenBen050599/ms-geo-monitor/actions" target="_blank">View on GitHub</a>
+        </div>
+    </div>
+
+    <script>
+        const BRAND = 'marinesphere.jp';
+        const BRAND_NAME = 'Marine Sphere';
+        const REPO = 'BenBen050599/ms-geo-monitor';
+        
+        async function loadData() {
+            try {
+                const dataUrl = `https://raw.githubusercontent.com/${REPO}/main/dashboard/data.json?_=${Date.now()}`;
+                const response = await fetch(dataUrl);
+                if (!response.ok) throw new Error('Data file not found');
+                const data = await response.json();
+                renderDashboard(data);
+            } catch (error) {
+                document.getElementById('app').innerHTML = `
+                    <div class="error">
+                        <h3>⚠️ Could not load data</h3>
+                        <p>${error.message}</p>
+                        <p style="margin-top:10px;font-size:12px;">
+                            Make sure GitHub Actions has run and committed data.
+                        </p>
+                    </div>
+                `;
+            }
+        }
+        
+        function generateRecommendations(data) {
+            const recs = [];
+            const queryPerf = data.query_performance || [];
+            
+            // Analyze query performance
+            const brandQueries = queryPerf.filter(q => 
+                q.query.toLowerCase().includes('global perspectives') || 
+                q.query.toLowerCase().includes('globalperspective')
+            );
+            const productQueries = queryPerf.filter(q => 
+                q.query.toLowerCase().includes('ai news') ||
+                q.query.toLowerCase().includes('news aggregator') ||
+                q.query.toLowerCase().includes('country risk') ||
+                q.query.toLowerCase().includes('news intelligence')
+            );
+            const competitorQueries = queryPerf.filter(q => 
+                q.query.toLowerCase().includes('alternative') ||
+                q.query.toLowerCase().includes('google news') ||
+                q.query.toLowerCase().includes('competitor')
+            );
+            
+            const brandRate = brandQueries.length > 0 
+                ? brandQueries.reduce((sum, q) => sum + q.rate, 0) / brandQueries.length 
+                : 0;
+            const productRate = productQueries.length > 0 
+                ? productQueries.reduce((sum, q) => sum + q.rate, 0) / productQueries.length 
+                : 0;
+            const competitorRate = competitorQueries.length > 0 
+                ? competitorQueries.reduce((sum, q) => sum + q.rate, 0) / competitorQueries.length 
+                : 0;
+            
+            // High priority recommendations
+            if (productRate < 20) {
+                recs.push({
+                    priority: 'high',
+                    title: '📌 Improve Product Keyword Rankings',
+                    detail: `Only ${productRate.toFixed(1)}% mention rate for product-related queries like "AI news aggregator". AI doesn't know you exist in this category.`,
+                    action: 'Add Schema.org structured data to website. Include keywords like "AI news aggregator", "country risk analysis", "news intelligence" in page titles and descriptions.'
+                });
+            }
+            
+            if (competitorRate < 10) {
+                recs.push({
+                    priority: 'high',
+                    title: '🔄 Get Listed as Google News Alternative',
+                    detail: `0% mention rate when users search for "Google News alternative". You're missing out on switcher users.`,
+                    action: 'Submit to AlternativeTo.net, Product Hunt, and similar directories. Build backlinks from tech blogs.'
+                });
+            }
+            
+            // Medium priority
+            if (data.cited < data.total * 0.1) {
+                recs.push({
+                    priority: 'medium',
+                    title: '🔗 Increase URL Citation Rate',
+                    detail: `Only ${data.cited} URLs cited out of ${data.total} queries. AI mentions you but doesn't link to you.`,
+                    action: 'Ensure your website has clear, linkable content. Add structured data with your exact URL to help AI cite you correctly.'
+                });
+            }
+            
+            // Check for position issues
+            const lowPositionQueries = queryPerf.filter(q => q.rate > 0 && q.rate < 50);
+            if (lowPositionQueries.length > 0) {
+                recs.push({
+                    priority: 'medium',
+                    title: '📍 Improve Brand Position in Responses',
+                    detail: `Some queries mention you but position is low (middle/bottom of response).`,
+                    action: 'Create more authoritative content. Get featured in news articles and industry publications to boost authority signals.'
+                });
+            }
+            
+            // Low priority / maintenance
+            if (data.days < 7) {
+                recs.push({
+                    priority: 'low',
+                    title: '📈 Continue Daily Monitoring',
+                    detail: `Only ${data.days} day(s) of data. Need at least 7 days for trend analysis.`,
+                    action: 'Keep the monitor running daily. After 7 days, we can see real trends and measure improvement.'
+                });
+            }
+            
+            // General recommendations
+            recs.push({
+                priority: 'low',
+                title: '🌐 Build External Presence',
+                detail: 'AI looks for authority signals. Brand mentions alone are not enough.',
+                action: 'Get mentioned in: Tech blogs, LinkedIn posts, Twitter/X, Reddit discussions, News articles. Build E-E-A-T signals.'
+            });
+            
+            return recs;
+        }
+        
+        function renderDashboard(data) {
+            const totalQueries = data.total || 0;
+            const mentionRate = data.mention_rate || 0;
+            const citedCount = data.cited || 0;
+            const daysTracked = data.days || 1;
+            
+            const mentioned = Math.round(totalQueries * mentionRate / 100);
+            const notMentioned = totalQueries - mentioned;
+            
+            // Generate recommendations
+            const recommendations = generateRecommendations(data);
+            
+            // Group results by query
+            const queryGroups = {};
+            if (data.recent) {
+                data.recent.forEach(r => {
+                    if (!queryGroups[r.query]) {
+                        queryGroups[r.query] = { mentioned: 0, total: 0 };
+                    }
+                    queryGroups[r.query].mentioned += r.mentioned ? 1 : 0;
+                    queryGroups[r.query].total += 1;
+                });
+            }
+            
+            document.getElementById('app').innerHTML = `
+                <!-- Stats Cards -->
+                <div class="cards">
+                    <div class="card highlight">
+                        <div class="card-value">${totalQueries}</div>
+                        <div class="card-label">Total Queries (${daysTracked} days)</div>
+                    </div>
+                    <div class="card ${mentionRate > 30 ? 'positive' : 'warning'}">
+                        <div class="card-value">${mentionRate.toFixed(1)}%</div>
+                        <div class="card-label">Brand Mention Rate</div>
+                    </div>
+                    <div class="card">
+                        <div class="card-value">${citedCount}</div>
+                        <div class="card-label">URLs Cited</div>
+                    </div>
+                    <div class="card ${citedCount > mentioned ? 'positive' : 'danger'}">
+                        <div class="card-value">${mentioned}</div>
+                        <div class="card-label">Times Mentioned</div>
+                    </div>
+                </div>
+                
+                <!-- Recommendations Section -->
+                <div class="recommendations">
+                    <h3>💡 GEO Improvement Recommendations <span style="font-size:12px;color:#94a3b8;">(Based on your data)</span></h3>
+                    ${recommendations.map(rec => `
+                        <div class="recommendation-item ${rec.priority}">
+                            <h4>
+                                ${rec.title}
+                                <span class="priority-tag ${rec.priority}">${rec.priority.toUpperCase()}</span>
+                            </h4>
+                            <p><strong>Problem:</strong> ${rec.detail}</p>
+                            <p style="margin-top:8px;"><strong>Action:</strong> ${rec.action}</p>
+                        </div>
+                    `).join('')}
+                </div>
+                
+                <!-- Charts Row -->
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:30px;">
+                    <div class="chart-container">
+                        <div class="chart-title">📈 30-Day Mention Trend</div>
+                        <canvas id="trend-chart"></canvas>
+                    </div>
+                    <div class="chart-container">
+                        <div class="chart-title">🎯 Mention vs Not Mentioned</div>
+                        <canvas id="pie-chart"></canvas>
+                    </div>
+                </div>
+                
+                <!-- Query Performance -->
+                <div class="chart-container">
+                    <div class="chart-title">🔍 Query Performance (Which queries mention the brand?)</div>
+                    <div style="overflow-x:auto;">
+                        <table class="results-table">
+                            <thead>
+                                <tr>
+                                    <th>Query</th>
+                                    <th>Times Mentioned</th>
+                                    <th>Total Runs</th>
+                                    <th>Rate</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${Object.entries(queryGroups).map(([query, stats]) => {
+                                    const rate = stats.total > 0 ? (stats.mentioned / stats.total * 100) : 0;
+                                    const color = rate > 50 ? '#22c55e' : rate > 20 ? '#f59e0b' : '#ef4444';
+                                    return `
+                                        <tr>
+                                            <td><code style="color:#e2e8f0">${query}</code></td>
+                                            <td style="color:#22c55e">${stats.mentioned}</td>
+                                            <td>${stats.total}</td>
+                                            <td>
+                                                <div style="display:flex;align-items:center;gap:8px;">
+                                                    <div style="width:60px;background:#334155;border-radius:4px;height:8px;">
+                                                        <div style="width:${rate}%;background:${color};height:100%;border-radius:4px;"></div>
+                                                    </div>
+                                                    <span style="color:${color}">${rate.toFixed(0)}%</span>
+                                                </div>
+                                            </td>
+                                            <td><span class="badge ${rate > 50 ? 'mentioned' : rate > 20 ? 'middle' : 'not-mentioned'}">${rate > 50 ? '✅ Good' : rate > 20 ? '⚠️ Fair' : '❌ Poor'}</span></td>
+                                        </tr>
+                                    `;
+                                }).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                
+                <!-- Recent Results -->
+                <div class="chart-container">
+                    <div class="chart-title">📋 Raw Results (Click to expand)</div>
+                    <div class="filters">
+                        <button class="filter-btn active" onclick="filterResults('all')">All</button>
+                        <button class="filter-btn" onclick="filterResults('mentioned')">Mentioned</button>
+                        <button class="filter-btn" onclick="filterResults('not-mentioned')">Not Mentioned</button>
+                    </div>
+                    <div style="overflow-x:auto;">
+                        <table class="results-table" id="results-table">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Engine</th>
+                                    <th>Query</th>
+                                    <th>Status</th>
+                                    <th>Position</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="results-body">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                
+                <!-- Transparency Section -->
+                <div class="insight-grid">
+                    <div class="insight-box">
+                        <h4>🔍 How This Data is Generated</h4>
+                        <ul>
+                            <li>Every day, GitHub Actions runs queries against Groq API</li>
+                            <li>Each query runs multiple times for consistency</li>
+                            <li>System checks if brand name appears in AI response</li>
+                            <li>System checks if URL is included as a link</li>
+                            <li>Position tracking measures where brand appears</li>
+                        </ul>
+                    </div>
+                    <div class="insight-box">
+                        <h4>📊 What the Metrics Mean</h4>
+                        <ul>
+                            <li><strong>Mention Rate:</strong> % of queries where brand is mentioned</li>
+                            <li><strong>URL Cited:</strong> Brand mentioned WITH a link</li>
+                            <li><strong>Position:</strong> Where in response (top = best)</li>
+                            <li><strong>Trend:</strong> 30-day change in mention rate</li>
+                            <li><strong>Recommendations:</strong> AI-generated improvement suggestions</li>
+                        </ul>
+                    </div>
+                </div>
+            `;
+            
+            // Render trend chart
+            if (data.trend && data.trend.length > 0) {
+                new Chart(document.getElementById('trend-chart'), {
+                    type: 'line',
+                    data: {
+                        labels: data.trend.map(d => d.date),
+                        datasets: [{
+                            label: 'Mention Rate (%)',
+                            data: data.trend.map(d => d.mention_rate.toFixed(1)),
+                            borderColor: '#3b82f6',
+                            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                            fill: true,
+                            tension: 0.4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: { legend: { display: false } },
+                        scales: {
+                            y: { beginAtZero: true, max: 100, grid: { color: '#334155' }, ticks: { color: '#94a3b8' } },
+                            x: { grid: { color: '#334155' }, ticks: { color: '#94a3b8' } }
+                        }
+                    }
+                });
+            }
+            
+            // Render pie chart
+            new Chart(document.getElementById('pie-chart'), {
+                type: 'doughnut',
+                data: {
+                    labels: ['Brand Mentioned', 'Not Mentioned'],
+                    datasets: [{
+                        data: [mentioned, notMentioned],
+                        backgroundColor: ['#22c55e', '#ef4444'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: { position: 'bottom', labels: { color: '#94a3b8' } }
+                    }
+                }
+            });
+            
+            // Render results table
+            renderResultsTable(data.recent || []);
+        }
+        
+        function renderResultsTable(results) {
+            window.allResults = results;
+            updateResultsTable('all');
+        }
+        
+        function filterResults(filter) {
+            document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            updateResultsTable(filter);
+        }
+        
+        function updateResultsTable(filter) {
+            const results = window.allResults || [];
+            const filtered = filter === 'all' ? results : 
+                filter === 'mentioned' ? results.filter(r => r.mentioned) :
+                results.filter(r => !r.mentioned);
+            
+            document.getElementById('results-body').innerHTML = filtered.slice(0, 50).map((r, i) => `
+                <tr>
+                    <td>${r.date}</td>
+                    <td><code>${r.engine}</code></td>
+                    <td style="max-width:250px;overflow:hidden;text-overflow:ellipsis;">${r.query}</td>
+                    <td>
+                        <span class="badge ${r.mentioned ? 'mentioned' : 'not-mentioned'}">
+                            ${r.mentioned ? '✅ Yes' : '❌ No'}
+                        </span>
+                    </td>
+                    <td><span class="badge ${r.position}">${r.position.replace('_', ' ')}</span></td>
+                    <td>
+                        <button class="expand-btn" onclick="toggleResponse(${i})">View</button>
+                    </td>
+                </tr>
+                <tr id="response-row-${i}" style="display:none;">
+                    <td colspan="6">
+                        <div class="raw-response" id="response-${i}">
+                            ${r.raw_response || 'Raw response not available.'}
+                        </div>
+                    </td>
+                </tr>
+            `).join('');
+        }
+        
+        function toggleResponse(index) {
+            const row = document.getElementById(`response-row-${index}`);
+            const content = document.getElementById(`response-${index}`);
+            
+            if (row.style.display === 'table-row') {
+                row.style.display = 'none';
+            } else {
+                row.style.display = 'table-row';
+                content.classList.add('show');
+            }
+        }
+        
+        loadData();
+    </script>
+</body>
+</html>

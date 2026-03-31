@@ -1,0 +1,8 @@
+{
+  "date": "2025-03-28",
+  "engine": "perplexity",
+  "query": "test query",
+  "attempt": 1,
+  "response": "Test response mentioning globalperspective.net",
+  "saved_at": "2026-03-28T23:08:05.378460"
+}

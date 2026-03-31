@@ -1,0 +1,79 @@
+name: Daily GEO Monitor — Marine Sphere
+
+on:
+  schedule:
+    # Runs at 00:00 UTC = 09:00 JST (Japan Standard Time)
+    - cron: '0 0 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      - name: Run tests
+        run: |
+          python tests/test_analyzer.py
+          python tests/test_storage.py
+          python tests/test_integration.py
+
+  monitor:
+    runs-on: ubuntu-latest
+    needs: test
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run GEO Monitor
+        run: python -m src.main
+        env:
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          TZ: Asia/Tokyo
+
+      - name: Generate dashboard data
+        run: python -m src.report
+
+      - name: Sync dashboard to docs/
+        run: cp dashboard/index.html docs/index.html
+
+      - name: Commit and push data
+        run: |
+          git config --local user.email "geo-bot@marinesphere.jp"
+          git config --local user.name "GEO Bot"
+          git add data/ dashboard/data.json docs/
+          git commit -m "Update GEO data $(date +'%Y-%m-%d')" || echo "No changes to commit"
+          git push
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload raw responses as artifact
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: raw-responses-${{ github.run_number }}
+          path: data/raw_responses/
+          retention-days: 30

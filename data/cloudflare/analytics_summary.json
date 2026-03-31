@@ -1,0 +1,28 @@
+{
+  "summary": {
+    "period": "2026-03-23 to 2026-03-29 (7 days)",
+    "total_requests": 12792,
+    "total_pageviews": 2844,
+    "total_bandwidth_gb": 128.37,
+    "total_unique_visitors": 1465,
+    "avg_daily_requests": 1827,
+    "avg_daily_pageviews": 406,
+    "cache_hit_rate": "35.8%",
+    "threats_blocked": 277
+  },
+  "daily_breakdown": [
+    {"date": "2026-03-29", "requests": 1194, "pageviews": 309, "bandwidth_mb": 6.15, "uniques": 127, "threats": 0},
+    {"date": "2026-03-28", "requests": 1210, "pageviews": 344, "bandwidth_mb": 6.70, "uniques": 134, "threats": 1},
+    {"date": "2026-03-27", "requests": 1178, "pageviews": 315, "bandwidth_mb": 7.23, "uniques": 140, "threats": 0},
+    {"date": "2026-03-26", "requests": 2771, "pageviews": 393, "bandwidth_mb": 9.74, "uniques": 159, "threats": 0},
+    {"date": "2026-03-25", "requests": 2012, "pageviews": 330, "bandwidth_mb": 7.05, "uniques": 160, "threats": 276},
+    {"date": "2026-03-24", "requests": 2480, "pageviews": 647, "bandwidth_mb": 46.89, "uniques": 336, "threats": 0},
+    {"date": "2026-03-23", "requests": 1947, "pageviews": 506, "bandwidth_mb": 42.65, "uniques": 409, "threats": 0}
+  ],
+  "insights": {
+    "traffic_trend": "Declining - peak on Mar 24 (647 pageviews), now at 309",
+    "threats": "277 threats blocked on Mar 25 - possible attack or bot traffic",
+    "cache_efficiency": "Low - only 35.8% cache hit rate, room for improvement",
+    "audience_size": "Small but engaged - 127-409 unique visitors per day"
+  }
+}
