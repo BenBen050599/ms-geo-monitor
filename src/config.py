@@ -155,7 +155,7 @@ QUERY_CATEGORIES = {
 
 ENGINES = ["groq"]
 
-ATTEMPTS_PER_QUERY = 2
+ATTEMPTS_PER_QUERY = 1
 
 # ============ SETTINGS ============
 
